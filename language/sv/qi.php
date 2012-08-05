@@ -69,6 +69,7 @@ $lang = array_merge($lang, array(
 	'BOARDS_DELETED_TITLE' => 'Borttagna forum',
 	'BOARDS_DIR' => 'Forumkatalog',
 	'BOARDS_DIR_EXPLAIN' => 'Katalogen där dina forum kommer att skapas. PHP behöver ha skrivtillstånd till denna katalog.',
+	'BOARDS_DIR_MISSING' => 'Katalogen%s finns inte eller är inte skrivbar.',
 	'BOARDS_LIST' => 'Lista av forum',
 	'BOARDS_NOT_WRITABLE' => 'Forumets katalog är inte skrivbar.',
 
@@ -108,13 +109,14 @@ $lang = array_merge($lang, array(
 	'DIR_EXISTS' => 'Katalogen %s finns redan.',
 	'DISABLED' => 'Används ej',
 	'DROP_DB_IF_EXISTS' => 'Radera databasen om den redan finns',
-	
 
 	'EMAIL_DOMAIN' => 'Domän för e-post',
 	'EMAIL_DOMAIN_EXPLAIN' => 'Domänen som kommer att användas till testare. Deras e-post kommer att vara tester_x@&lt;domain.se&gt;.',
 	'EMAIL_ENABLE' => 'Aktivera e-post',
 	'EMAIL_ENABLE_EXPLAIN' => 'Aktivera e-post för forumet. För ett lokalt testforum brukar detta vanligtvis vara inaktiverat, såvida du inte testar e-posten.',
 	'ENABLED' => 'Aktiverad',
+
+	'FUNCTIONS_MODS_MISSING' => 'includes/automod/functions_mods.php finns ej.',
 
 	'GENERAL_ERROR' => 'Allmänt fel',
 
@@ -128,9 +130,6 @@ $lang = array_merge($lang, array(
 	'LICENSE' => 'Licens?',
 	'LICENSE_EXPLAIN' => 'Detta skript är publicerat under <a href="license.txt">GNU General Public License version 2</a> dessa termer. Detta är mestadels för att det använder en stor mängd av phpBB-kod, som också är publicerat under denna lisens och kräver viss modifiering för att användas. Men också för att det är en underbar licens som håller gratis programvara gratis. :)',
 	'LOG_INSTALL_INSTALLED_QI'	=> '<strong>Installerad utav phpBB Snabbinstallation version %s</strong>',
-
-	// To translators: Lorem Ipsum is a dummy placeholder string. Do not translate this string.
-	'LOREM_IPSUM' => 'Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.',
 
 	'MAKE_WRITABLE' => 'Gör filer skrivbara',
 	'MAKE_WRITABLE_EXPLAIN' => 'Gör filerna, config.php, och kataloger skrivbara för alla grupper som standard. Detta kan ändras när du skapar forum.',
