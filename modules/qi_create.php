@@ -24,12 +24,13 @@ class qi_create
 {
 	public function __construct()
 	{
-		global $db, $user, $auth, $cache;
+		global $db, $user, $auth, $cache, $settings, $table_prefix;
 		global $quickinstall_path, $phpbb_root_path, $phpEx, $config, $qi_config, $msg_title;
 
 		// include installation functions
 		include($quickinstall_path . 'includes/functions_install.' . $phpEx);
-//		include($quickinstall_path . 'includes/qi_functions.' . $phpEx);
+		// postgres uses remove_comments function which is defined in functions_admin
+		include($phpbb_root_path . 'includes/functions_admin.' . $phpEx);
 
 		$config = array_merge($config, array(
 			'rand_seed'				=> md5(mt_rand()),
@@ -51,6 +52,7 @@ class qi_create
 		$delete_files = request_var('delete_files', false);
 		$automod = request_var('automod', false);
 		$make_writable = request_var('make_writable', false);
+		$grant_permissions = octdec(request_var('grant_permissions', 0));
 		$populate = request_var('populate', false);
 		$subsilver = request_var('subsilver', 0);
 		$alt_env = request_var('alt_env', '');
@@ -74,7 +76,7 @@ class qi_create
 			}
 		}
 
-		foreach (array('site_name', 'site_desc', 'table_prefix', 'admin_name', 'admin_pass') as $r)
+		foreach (array('site_name', 'site_desc', 'admin_name', 'admin_pass', 'db_prefix') as $r)
 		{
 			if ($_r = request_var($r, '', true))
 			{
@@ -99,7 +101,7 @@ class qi_create
 		));
 
 		// smaller ^^
-		list($dbms, $table_prefix) = array(&$qi_config['dbms'], &$qi_config['table_prefix']);
+		$dbms = $qi_config['dbms'];
 
 		// check if we have a board db (and folder) name
 		if (!$dbname)
@@ -108,7 +110,8 @@ class qi_create
 		}
 
 		// Set the new board as root path.
-		$board_dir = $quickinstall_path . 'boards/' . $dbname . '/';
+		$board_dir = $settings->get_boards_dir() . $dbname . '/';
+		$board_url = $settings->get_boards_url() . $dbname . '/';
 		$phpbb_root_path = $board_dir;
 		if (!defined('PHPBB_ROOT_PATH'))
 		{
@@ -130,11 +133,6 @@ class qi_create
 		// copy all of our files
 		file_functions::copy_dir($quickinstall_path . 'sources/' . ($alt_env === '' ? 'phpBB3/' : "phpBB3_alt/$alt_env/"), $board_dir);
 
-		if ($make_writable)
-		{
-			chmod($board_dir, 0777);
-		}
-
 		// Now make sure we have a valid db-name and prefix
 		$qi_config['db_prefix'] = validate_dbname($qi_config['db_prefix'], true);
 		$dbname = validate_dbname($dbname);
@@ -149,7 +147,11 @@ class qi_create
 			copy("{$quickinstall_path}language/en/info_acp_qi.$phpEx", "{$board_dir}language/en/mods/info_acp_qi.$phpEx");
 		}
 
-		if ($dbms == 'sqlite' || $dbms == 'firebird')
+		if ($dbms == 'sqlite')
+		{
+			$qi_config['dbhost'] = $qi_config['dbhost'] . $qi_config['db_prefix'] . $dbname;
+		}
+		else if ($dbms == 'firebird')
 		{
 			$qi_config['dbhost'] = $qi_config['db_prefix'] . $dbname;
 
@@ -187,7 +189,7 @@ class qi_create
 		$config_data .= '?' . '>'; // Done this to prevent highlighting editors getting confused!
 		file_put_contents($board_dir . 'config.' . $phpEx, $config_data);
 
-		if ($dbms == 'sqlite' || $dbms == 'firebird')
+		if ($dbms == 'firebird')
 		{
 			// and now restore
 			list($qi_config['db_prefix'], $dbname) = array(&$temp1, &$temp2);
@@ -196,6 +198,8 @@ class qi_create
 		// update phpbb_root_path
 		$phpbb_root_path = $board_dir;
 
+		db_connect();
+
 		if ($drop_db)
 		{
 			$db->sql_query('DROP DATABASE IF EXISTS ' . $qi_config['db_prefix'] . $dbname);
@@ -203,9 +207,23 @@ class qi_create
 		else
 		{
 			// Check if the database exists.
-			if ($dbms == 'sqlite' || $dbms == 'firebird')
+			if ($dbms == 'sqlite')
 			{
-				$db_check = $db->sql_select_db($quickinstall_path . 'cache/' . $qi_config['db_prefix'] . $dbname);
+				$db_check = $db->sql_select_db($qi_config['dbhost']);
+			}
+			else if ($dbms == 'firebird')
+			{
+				$db_check = $db->sql_select_db($settings->get_cache_dir() . $qi_config['db_prefix'] . $dbname);
+			}
+			else if ($dbms == 'postgres')
+			{
+				global $sql_db, $dbhost, $dbuser, $dbpasswd, $dbport;
+				$error_collector = new phpbb_error_collector();
+				$error_collector->install();
+				$db_check_conn = new $sql_db();
+				$db_check_conn->sql_connect($dbhost, $dbuser, $dbpasswd, $qi_config['db_prefix'] . $dbname, $dbport, false, false);
+				$error_collector->uninstall();
+				$db_check = count($error_collector->errors) == 0;
 			}
 			else
 			{
@@ -218,10 +236,22 @@ class qi_create
 			}
 		}
 
-		if ($dbms == 'sqlite' || $dbms == 'firebird')
+		if ($dbms == 'sqlite')
 		{
-			$db->sql_query('CREATE DATABASE ' . $quickinstall_path . 'cache/' . $qi_config['db_prefix'] . $dbname);
-			$db->sql_select_db($quickinstall_path . 'cache/' . $qi_config['db_prefix'] . $dbname);
+			$db->sql_create_db($qi_config['dbhost']);
+			$db->sql_select_db($qi_config['dbhost']);
+		}
+		else if ($dbms == 'firebird')
+		{
+			$db->sql_query('CREATE DATABASE ' . $settings->get_cache_dir() . $qi_config['db_prefix'] . $dbname);
+			$db->sql_select_db($settings->get_cache_dir() . $qi_config['db_prefix'] . $dbname);
+		}
+		else if ($dbms == 'postgres')
+		{
+			$db->sql_query('CREATE DATABASE ' . $qi_config['db_prefix'] . $dbname);
+			$db = new $sql_db();
+			$db->sql_connect($dbhost, $dbuser, $dbpasswd, $qi_config['db_prefix'] . $dbname, $dbport, false, false);
+			$db->sql_return_on_error(true);
 		}
 		else
 		{
@@ -249,7 +279,7 @@ class qi_create
 		$script_path = trim(dirname($script_path));
 
 		// add the dbname to script path
-		$script_path .= '/boards/' . $dbname;
+		$script_path .= $settings->get_boards_dir() . $dbname . '/';
 
 		$config_ary = array(
 			'board_startdate'	=> $current_time,
@@ -403,10 +433,6 @@ class qi_create
 		$install->add_language(false, false);
 		$install->add_bots(false, false);
 
-		// login
-		$user->session_begin();
-		$auth->login($qi_config['admin_name'], $qi_config['admin_pass'], false, true, true);
-
 		// now automod (easymod)
 		if ($automod)
 		{
@@ -414,10 +440,10 @@ class qi_create
 			automod_installer::install_automod($board_dir, $make_writable);
 		}
 
-		if ($dbms == 'sqlite' || $dbms == 'firebird')
+		if ($dbms == 'firebird')
 		{
 			// copy the temp db over
-			file_functions::copy_file($quickinstall_path . 'cache/' . $qi_config['db_prefix'] . $dbname, $board_dir . $qi_config['db_prefix'] . $dbname);
+			file_functions::copy_file($settings->get_cache_dir() . $qi_config['db_prefix'] . $dbname, $board_dir . $qi_config['db_prefix'] . $dbname);
 			$db->sql_select_db($board_dir . $qi_config['db_prefix'] . $dbname);
 		}
 
@@ -505,10 +531,26 @@ class qi_create
 			file_functions::make_writable($board_dir);
 		}
 
-		// if he wants to be redirected, redirect him
-		if ($redirect)
+		// Grant additional permissions
+		if ($grant_permissions)
 		{
-			qi::redirect($board_dir);
+			file_functions::grant_permissions($board_dir, $grant_permissions);
+		}
+
+		// if he wants to be redirected, redirect him
+		if (empty($alt_env) && $redirect)
+		{
+			// Log him in first.
+			$user->session_begin();
+			$auth->login($qi_config['admin_name'], $qi_config['admin_pass'], false, true, true);
+			qi::redirect($board_url);
+		}
+		else if ($redirect)
+		{
+			// We are redirecting to a alt environment.
+			// We don't know what have been changed there so we can't login without maybe throwing a error.
+			// Just redirect without logging in.
+			qi::redirect($board_url);
 		}
 
 		// On succces just return to main page.

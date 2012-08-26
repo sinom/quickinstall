@@ -24,15 +24,15 @@ class qi_main
 {
 	public function __construct()
 	{
-		global $db, $template, $user;
+		global $db, $template, $user, $settings;
 		global $quickinstall_path, $phpbb_root_path, $phpEx, $config, $qi_config;
 
 		// list of boards
-		$boards_arr = scandir($quickinstall_path . $qi_config['boards_dir']);
+		$boards_arr = scandir($settings->get_boards_dir());
 		$s_has_forums = false;
 		foreach ($boards_arr as $board)
 		{
-			if (in_array($board, array('.', '..', '.svn', '.htaccess', '.git'), true) || is_file($quickinstall_path . 'boards/' . $board))
+			if (in_array($board, array('.', '..', '.svn', '.htaccess', '.git'), true) || is_file($settings->get_boards_dir() . $board))
 			{
 				continue;
 			}
@@ -41,7 +41,7 @@ class qi_main
 
 			$template->assign_block_vars('row', array(
 				'BOARD_NAME'	=> htmlspecialchars($board),
-				'BOARD_URL'		=> $quickinstall_path . $qi_config['boards_dir'] . urlencode($board),
+				'BOARD_URL'		=> $settings->get_boards_url() . urlencode($board),
 			));
 		}
 
@@ -67,6 +67,7 @@ class qi_main
 			'S_HAS_FORUMS' => $s_has_forums,
 
 			'TABLE_PREFIX'	=> htmlspecialchars($qi_config['table_prefix']),
+			'DB_PERFIX'		=> htmlspecialchars($qi_config['db_prefix']),
 			'SITE_NAME'		=> $qi_config['site_name'],
 			'SITE_DESC'		=> $qi_config['site_desc'],
 
@@ -92,6 +93,7 @@ class qi_main
 			'NUM_REPLIES_MIN' => (!empty($qi_config['num_replies_min'])) ? $qi_config['num_replies_min'] : 0,
 			'NUM_REPLIES_MAX' => (!empty($qi_config['num_replies_max'])) ? $qi_config['num_replies_max'] : 0,
 			'EMAIL_DOMAIN' => (!empty($qi_config['email_domain'])) ? $qi_config['email_domain'] : '',
+			'GRANT_PERMISSIONS' => (!empty($qi_config['grant_permissions'])) ? $qi_config['grant_permissions'] : '',
 		));
 
 		// Output page

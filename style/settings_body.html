@@ -12,7 +12,32 @@
 
 <!-- IF ERROR --><div class="errorbox">{ERROR}</div><!-- ENDIF -->
 
-<!-- IF S_BOARDS_WRITABLE and S_CACHE_WRITABLE and S_CONFIG_WRITABLE -->
+<!-- IF CONFIG_TEXT -->
+	<div class="errorbox large">
+		<div class='config-text'>
+			<div id='config_text_button' style='display:none'>
+				<p>{L_CONFIG_WARNING}</p>
+				<p>
+					<input type='button' value="{L_CONFIG_BUTTON}" onclick='show_config()' />
+				</p>
+			</div>
+			<textarea id='config_text' readonly='readonly' style='display:none'>{CONFIG_TEXT}</textarea>
+			<noscript>
+				<textarea id='config_text' readonly='readonly'>{CONFIG_TEXT}</textarea>
+			</noscript>
+		</div>
+	</div>
+
+	<script type='text/javascript'>
+		function show_config()
+		{
+			document.getElementById('config_text').style.display = '';
+			document.getElementById('config_text_button').style.display = 'none';
+		}
+		document.getElementById('config_text_button').style.display = '';
+	</script>
+<!-- ENDIF -->
+
 <form method="post" action="{U_UPDATE_SETTINGS}">
 
 <fieldset>
@@ -70,8 +95,16 @@
 	</dl>
 	<hr />
 	<dl>
+		<dt><label for="boards_dir">{L_CACHE_DIR}:*</label><br />{L_CACHE_DIR_EXPLAIN}</dt>
+		<dd><input class="text medium" type="text" id="cache_dir" name="qi_config[cache_dir]" value="{CONFIG_CACHE_DIR}" /></dd>
+	</dl>
+	<dl>
 		<dt><label for="boards_dir">{L_BOARDS_DIR}:*</label><br />{L_BOARDS_DIR_EXPLAIN}</dt>
 		<dd><input class="text medium" type="text" id="boards_dir" name="qi_config[boards_dir]" value="{CONFIG_BOARDS_DIR}" /></dd>
+	</dl>
+	<dl>
+		<dt><label for="boards_dir">{L_BOARDS_URL}:*</label><br />{L_BOARDS_URL_EXPLAIN}</dt>
+		<dd><input class="text medium" type="text" id="boards_url" name="qi_config[boards_url]" value="{CONFIG_BOARDS_URL}" /></dd>
 	</dl>
 	<dl>
 		<dt><label for="qi_tz">{L_QI_TZ}:*</label><br />{L_QI_TZ_EXPLAIN}</dt>
@@ -198,6 +231,12 @@
 		</dd>
 	</dl>
 	<dl>
+		<dt><label for="make_writable">{L_GRANT_PERMISSIONS}:</label><br />{L_GRANT_PERMISSIONS_EXPLAIN}<br />{L_NO_IMPACT_WIN}</dt>
+		<dd>
+			<dd><input class="text medium" type="text" id="grant_permissions" name="qi_config[grant_permissions]" value="{CONFIG_GRANT_PERMISSIONS}" /></dd>
+		</dd>
+	</dl>
+	<dl>
 		<dt><label>{L_SUBSILVER}:</label><br />{L_SUBSILVER_EXPLAIN}</dt>
 		<dd>
 			<label><input type="radio" class="radio" name="qi_config[subsilver]" value="1"<!-- IF CONFIG_SUBSILVER == 1 --> checked="checked"<!-- ENDIF --> /> {L_YES}</label>
@@ -277,5 +316,4 @@
 <p>{L_STAR_MANDATORY}</p>
 
 </form>
-<!-- ENDIF -->
 <!-- INCLUDE overall_footer.html -->

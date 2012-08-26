@@ -162,34 +162,40 @@ class file_functions
 	 */
 	public static function make_writable($dir, $root = true)
 	{
+		self::grant_permissions($dir, 0666, $root);
+	}
+	
+	public static function grant_permissions($dir, $add_perms, $root = true)
+	{
 		global $phpEx;
 
-		$file_arr = scandir($dir);
-		$dir .= '/';
-
-		foreach ($file_arr as $file)
+		$old_perms = fileperms($dir);
+		$new_perms = $old_perms | $add_perms;
+		if ($new_perms != $old_perms)
 		{
-			if ($file == '.' || $file == '..')
-			{
-				continue;
-			}
+			chmod($dir, $new_perms);
+		}
+		
+		if (is_dir($dir))
+		{
+			$file_arr = scandir($dir);
+			$dir .= '/';
 
-			//if ($root && $file == 'config.' . $phpEx)
-			//{
-			//	chmod($dir . $file, 0666);
-			//	continue;
-			//}
-
-			$file = $dir . $file;
-
-			if (is_file($file))
+			foreach ($file_arr as $file)
 			{
-				chmod($file, 0666);
-			}
-			else
-			{
-				chmod($file, 0777);
-				self::make_writable($file, false);
+				if ($file == '.' || $file == '..')
+				{
+					continue;
+				}
+
+				//if ($root && $file == 'config.' . $phpEx)
+				//{
+				//	chmod($dir . $file, 0666);
+				//	continue;
+				//}
+
+				$file = $dir . $file;
+				self::grant_permissions($file, $add_perms, false);
 			}
 		}
 

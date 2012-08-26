@@ -86,8 +86,8 @@ class populate
 	private $topc_arr = array();
 
 	// The default forums. To copy permissions from.
-	private $def_cat_id = 1;
-	private $def_forum_id = 2;
+	private $def_cat_id = 0;
+	private $def_forum_id = 0;
 
 	public function populate($data)
 	{
@@ -407,6 +407,9 @@ class populate
 		// phpBB installs the forum with one topic and one post.
 		set_config('num_topics', $topic_cnt + 1);
 		set_config('num_posts', $post_cnt + 1);
+
+		$db->update_sequence(TOPICS_TABLE . '_seq', $topic_cnt + 1);
+		$db->update_sequence(POSTS_TABLE . '_seq', $post_cnt + 1);
 	}
 
 	/**
@@ -507,7 +510,7 @@ class populate
 		}
 
 		// Copy the permissions from our default forums
-		copy_forum_permissions($this->def_cat_id, $forum_data['forum_id']);
+		copy_forum_permissions($this->def_forum_id, $forum_data['forum_id']);
 		$auth->acl_clear_prefetch();
 
 		if ($forum_type == FORUM_POST)
@@ -531,7 +534,7 @@ class populate
 	}
 
 	/**
-	 * Creates users and put's them in the right groups.
+	 * Creates users and puts them in the right groups.
 	 * Also populates the users array.
 	 */
 	private function save_users()
@@ -619,7 +622,7 @@ class populate
 		// Put them in groups.
 		$chunk_cnt = $newly_registered = $skip = 0;
 
-		// Don't add the first users to the newly registered group if a moderator and/or a admin is needed.
+		// Don't add the first users to the newly registered group if a moderator and/or an admin is needed.
 		$skip = ($this->create_mod) ? $skip + 1 : $skip;
 		$skip = ($this->create_admin) ? $skip + 1 : $skip;
 
@@ -677,7 +680,7 @@ class populate
 		global $db;
 
 		// We are the only ones messing with this database so far.
-		// So the latest user_id + 1 should be the user id for the first user.
+		// So the latest user_id + 1 should be the user id for the first test user.
 		$sql = 'SELECT forum_id, parent_id, forum_type, forum_posts, forum_topics, forum_topics_real, forum_last_post_id, forum_last_poster_id, forum_last_post_subject, forum_last_post_time, forum_last_poster_name FROM ' . FORUMS_TABLE;
 		$result = $db->sql_query($sql);
 
