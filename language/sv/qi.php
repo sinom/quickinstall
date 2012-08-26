@@ -43,7 +43,6 @@ if (empty($lang) || !is_array($lang))
 // Some characters you may want to copy&paste:
 // ’ » “ ” …
 //
-
 $lang = array_merge($lang, array(
 	'ABOUT_QUICKINSTALL' => 'Om phpBB3 Snabbinstallation',
 	'ADMIN_EMAIL' => 'Administrationens e-post',
@@ -69,15 +68,24 @@ $lang = array_merge($lang, array(
 	'BOARDS_DELETED_TITLE' => 'Borttagna forum',
 	'BOARDS_DIR' => 'Forumkatalog',
 	'BOARDS_DIR_EXPLAIN' => 'Katalogen där dina forum kommer att skapas. PHP behöver ha skrivtillstånd till denna katalog.',
-	'BOARDS_DIR_MISSING' => 'Katalogen%s finns inte eller är inte skrivbar.',
+	'BOARDS_DIR_MISSING' => 'Katalogen %s finns inte eller går inte att skriva till.',
 	'BOARDS_LIST' => 'Lista av forum',
 	'BOARDS_NOT_WRITABLE' => 'Forumets katalog är inte skrivbar.',
+	'BOARDS_URL' => 'Forumens URL-start',
+	'BOARDS_URL_EXPLAIN' => 'URL-start till forumens kataloger. Om du specifierar en absolut katalog i forumskataloginställningarna ovan, så kan du behöva tillhandahålla en domän och/eller genväg som leder till foumens kataloger. Om forumens kataloger är en relativ genväg, så kan du kopiera den här.',
 
+	'CACHE_DIR' => 'Kachekatalog',
+	'CACHE_DIR_EXPLAIN' => 'Katalogen där Snabbinstallationen förvarar olika filer. PHP behöver ha skriv-rättigheter till denna katalog.',
+	'CACHE_DIR_MISSING' => 'Katalogen %s finns inte eller är inte skrivbar.',
 	'CACHE_NOT_WRITABLE' => 'Cachekatalogen är inte skrivbar.',
 	'CHANGELOG' => 'Ändringslogg',
 	'CHECK_ALL' => 'Kontrollera alla',
+	'CONFIG_BUTTON' => 'Klicka här för att se konfigurationen.',
 	'CONFIG_EMPTY' => 'Nuvarande config array är tom. Detta är troligtvis värt en buggrapport.',
-	'CONFIG_NOT_WRITABLE' => 'qi_config.php filen är inte skrivbar.',
+	'CONFIG_IS_DISPLAYED' => 'Konfigurationen visas nedan. Du kan manuellt skriva i qi_config.php.',
+	'CONFIG_NOT_WRITABLE' => 'qi_config.cfg filen är inte skrivbar.',
+	'CONFIG_NOT_WRITTEN' => 'qi_config.php filen kunde inte ändras.',
+	'CONFIG_WARNING' => 'Klicka på knappen nedan för att se konfigurationen. <b>Varning:</b> lösenord kommer att visas.',
 	'COOKIE_DOMAIN' => 'Kakdomän',
 	'COOKIE_DOMAIN_EXPLAIN' => 'Detta borde vanligtvis vara localhost.',
 	'COOKIE_SECURE' => 'Kaksäkerhet',
@@ -116,9 +124,11 @@ $lang = array_merge($lang, array(
 	'EMAIL_ENABLE_EXPLAIN' => 'Aktivera e-post för forumet. För ett lokalt testforum brukar detta vanligtvis vara inaktiverat, såvida du inte testar e-posten.',
 	'ENABLED' => 'Aktiverad',
 
-	'FUNCTIONS_MODS_MISSING' => 'includes/automod/functions_mods.php finns ej.',
+	'FUNCTIONS_MODS_MISSING' => 'includes/automod/functions_mods.php not found.',
 
 	'GENERAL_ERROR' => 'Allmänt fel',
+	'GRANT_PERMISSIONS' => 'Ge ytterligare rättigheter',
+	'GRANT_PERMISSIONS_EXPLAIN' => '(t.ex 0060 för grupp läsa/skriva)',
 
 	'IN_SETTINGS' => 'Hantera dina Snabbinstallationsinställningar.',
 	'INCLUDE_MODS' => 'Inkludera MODs',
@@ -133,6 +143,8 @@ $lang = array_merge($lang, array(
 
 	'MAKE_WRITABLE' => 'Gör filer skrivbara',
 	'MAKE_WRITABLE_EXPLAIN' => 'Gör filerna, config.php, och kataloger skrivbara för alla grupper som standard. Detta kan ändras när du skapar forum.',
+	'MAKE_WRITABLE_BOARD' => 'Gör filerna skrivbara',
+	'MAKE_WRITABLE_BOARD_EXPLAIN' => '(samma som att ge rättigheten 0666)',
 	'MANAGE_BOARDS' => 'Hantera forum',
 	'MAX' => 'Max',
 	'MIGHT_TAKE_LONG' => '<strong>Notera:</strong> Att skapa ett forum kan ta en stund, kanske upp till en minut eller mer, så tryck <strong>inte</strong> på [Skicka] flera gånger.',
@@ -216,6 +228,7 @@ $lang = array_merge($lang, array(
 	'SMTP_PORT_EXPLAIN' => 'Ändra detta endast om du vet att din SMTP-server använder en annan port. ',
 	'SMTP_USER' => 'SMTP-användarnamn',
 	'SMTP_USER_EXPLAIN' => 'Ange ett användarnamn endast om din SMTP-server kräver detta.',
+	'SQLITE_PATH_MISSING' => 'Den angivna databasens är antingen fel eller inte skrivbar.',
 	'STAR_MANDATORY' => '* = obligatoriska',
 	'SUBMIT' => 'Skicka',
 	'SUBSILVER' => 'Installera Subsilver2',
