@@ -66,10 +66,16 @@ else
 		</dd>
 	</dl>
 	<dl>
-		<dt><label for="make_writable">{L_MAKE_WRITABLE}:</label><br />{L_NO_IMPACT_WIN}</dt>
+		<dt><label for="make_writable">{L_MAKE_WRITABLE_BOARD}:</label<br />{L_MAKE_WRITABLE_BOARD_EXPLAIN}<br />{L_NO_IMPACT_WIN}</dt>
 		<dd>
 			<label><input type="radio" class="radio" name="make_writable" value="1"<!-- IF S_MAKE_WRITABLE == 1 --> checked="checked"<!-- ENDIF --> /> {L_YES}</label>
 			<label><input type="radio" class="radio" name="make_writable" value="0"<!-- IF S_MAKE_WRITABLE == 0 --> checked="checked"<!-- ENDIF --> /> {L_NO}</label>
+		</dd>
+	</dl>
+	<dl>
+		<dt><label for="make_writable">{L_GRANT_PERMISSIONS}:</label><br />{L_GRANT_PERMISSIONS_EXPLAIN}<br />{L_NO_IMPACT_WIN}</dt>
+		<dd>
+			<dd><input class="text medium" type="text" id="grant_permissions" name="grant_permissions" value="{GRANT_PERMISSIONS}" /></dd>
 		</dd>
 	</dl>
 	<dl>
@@ -159,8 +165,12 @@ else
 			<dd><input class="text medium" type="text" id="admin_pass" name="admin_pass" /></dd>
 		</dl>
 		<dl>
-			<dt><label for="table_prefix">{L_DB_PREFIX}:</label></dt>
+			<dt><label for="table_prefix">{L_TABLE_PREFIX}:</label></dt>
 			<dd><input class="text medium" type="text" id="table_prefix" name="table_prefix" value="{TABLE_PREFIX}" /></dd>
+		</dl>
+		<dl>
+			<dt><label for="db_prefix">{L_DB_PREFIX}:</label></dt>
+			<dd><input class="text medium" type="text" id="db_prefix" name="db_prefix" value="{DB_PERFIX}" /></dd>
 		</dl>
 		<dl>
 			<dt><label for="drop_db">{L_DROP_DB_IF_EXISTS}:</label></dt>

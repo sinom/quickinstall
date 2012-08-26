@@ -22,11 +22,27 @@ $phpEx = substr(strrchr(__FILE__, '.'), 1);
 
 // Report all errors, except notices
 //error_reporting(E_ALL);
-error_reporting(E_ALL ^ E_NOTICE);
-
-if (version_compare(PHP_VERSION, '5.2.0') < 0)
+$level = E_ALL ^ E_NOTICE;
+if (version_compare(PHP_VERSION, '5.4.0-dev', '>='))
 {
-	die('You are running an unsupported PHP version. Please upgrade to PHP 5.2.0 or higher before trying to do anything with phpBB 3.0');
+	// PHP 5.4 adds E_STRICT to E_ALL.
+	// Our utf8 normalizer triggers E_STRICT output on PHP 5.4.
+	// Unfortunately it cannot be made E_STRICT-clean while
+	// continuing to work on PHP 4.
+	// Therefore, in phpBB 3.0.x we disable E_STRICT on PHP 5.4+,
+	// while phpBB 3.1 will fix utf8 normalizer.
+	// E_STRICT is defined starting with PHP 5
+	if (!defined('E_STRICT'))
+	{
+		define('E_STRICT', 2048);
+	}
+	$level &= ~E_STRICT;
+}
+error_reporting($level);
+
+if (version_compare(PHP_VERSION, '5.2.0', '<'))
+{
+	die('You are running an unsupported PHP version. phpBB QuickInstall only supports PHP version 5.2.0 and newer.');
 }
 
 // If we are on PHP >= 6.0.0 we do not need some code
@@ -58,7 +74,7 @@ require($quickinstall_path . 'includes/template.' . $phpEx);
 set_error_handler(array('qi', 'msg_handler'), E_ALL);
 
 // Make sure we have phpBB.
-if (!file_exists($quickinstall_path . 'sources/phpBB3'))
+if (!file_exists($quickinstall_path . 'sources/phpBB3/common.' . $phpEx))
 {
 	trigger_error('phpBB not found. You need to download phpBB3 and extract it in sources/');
 }
@@ -66,13 +82,18 @@ if (!file_exists($quickinstall_path . 'sources/phpBB3'))
 // Let's get the config.
 $qi_config = get_settings();
 
-foreach (array('dbms', 'dbhost', 'dbuser', 'dbpasswd', 'dbport', 'table_prefix') as $var)
+foreach (array('dbms', 'dbhost', 'dbuser', 'dbpasswd', 'dbport') as $var)
 {
 	$$var = $qi_config[$var];
 }
 
-// We need some phpBB functions to.
+// We need some phpBB functions too.
 require($phpbb_root_path . 'includes/functions.' . $phpEx);
+
+// Need to set prefix here before constants.php are included.
+// But we need request_var from functions.php if we create a board.
+$table_prefix = request_var('table_prefix', $qi_config['table_prefix']);
+
 require($phpbb_root_path . 'includes/constants.' . $phpEx);
 require($phpbb_root_path . 'includes/auth.' . $phpEx);
 require($phpbb_root_path . 'includes/acm/acm_file.' . $phpEx);
@@ -84,6 +105,8 @@ require($phpbb_root_path . 'includes/utf/utf_tools.' . $phpEx);
 $mode = request_var('mode', 'main');
 $qi_install = (empty($qi_config)) ? true : false;
 
+$settings = new settings($qi_config);
+
 // We need to set the template here.
 $template = new template();
 $template->set_custom_template('style', 'qi');
@@ -93,13 +116,29 @@ $user = new user();
 
 // Get and set the language.
 $language = (!empty($qi_config['qi_lang'])) ? $qi_config['qi_lang'] : 'en';
-$language = request_var('lang', $language);
+
+// If there is a language selected in the dropdown menu it's sent as GET, then igonre the hidden POST field.
+if (isset($_GET['lang']))
+{
+	$language = request_var('lang', $language);
+}
+else if (!empty($_POST['sel_lang']))
+{
+	$language = request_var('sel_lang', $language);
+}
 
 $user->lang = (file_exists($quickinstall_path . 'language/' . $language)) ? $language : 'en';
 qi::add_lang(array('qi', 'phpbb'), $quickinstall_path . 'language/' . $user->lang . '/');
 
 // Probably best place to validate the settings
-$error = validate_settings($qi_config);
+if ($settings->validate())
+{
+	$error = '';
+}
+else
+{
+	$error = $settings->error;
+}
 $mode = (empty($error)) ? $mode : (($mode == 'update_settings') ? 'update_settings' : 'settings');
 
 if ($qi_install || $mode == 'update_settings' || $mode == 'settings')
@@ -107,7 +146,7 @@ if ($qi_install || $mode == 'update_settings' || $mode == 'settings')
 	require($quickinstall_path . 'includes/qi_settings.' . $phpEx);
 }
 
-// Just put these here temporary. I'll change to use the constants later... Maybe tomorrow or so...
+// Just put these here temporarily. I'll change to use the constants later... Maybe tomorrow or so...
 $qi_config['version_check'] = false;
 $qi_config['qi_version'] = QI_VERSION;
 $qi_config['phpbb_version'] = PHPBB_VERSION;
@@ -118,20 +157,9 @@ $available_dbms = get_available_dbms($dbms);
 
 if (!isset($available_dbms[$dbms]['DRIVER']))
 {
+	// TODO This should be replaced with a warning.
 	trigger_error("The $dbms dbms is either not supported, or the php extension for it could not be loaded.", E_USER_ERROR);
 }
-
-// Load the appropriate database class if not already loaded
-include($phpbb_root_path . 'includes/db/' . $available_dbms[$dbms]['DRIVER'] . '.' . $phpEx);
-
-// now the quickinstall dbal extension
-include($quickinstall_path . 'includes/db/' . $available_dbms[$dbms]['DRIVER'] . '.' . $phpEx);
-
-// Instantiate the database
-$sql_db = 'dbal_' . $available_dbms[$dbms]['DRIVER'] . '_qi';
-$db = new $sql_db();
-$db->sql_connect($dbhost, $dbuser, $dbpasswd, false, $dbport, false, false);
-$db->sql_return_on_error(true);
 
 // now create a module_handler object
 $auth		= new auth();
@@ -144,8 +172,9 @@ $config = array(
 );
 
 // overwrite
-$cache->cache_dir = $quickinstall_path . 'cache/';
-$template->cachepath = $quickinstall_path . 'cache/tpl_qi_';
+
+$cache->cache_dir = $settings->get_cache_dir();
+$template->cachepath = $cache->cache_dir . 'tpl_qi_';
 
 // load lang
 qi::add_lang(array('qi', 'phpbb'));

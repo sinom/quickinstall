@@ -61,13 +61,7 @@ class dbal_sqlite_qi extends dbal_sqlite
 	{
 		if (!file_exists($dbname))
 		{
-			if (empty($dbname))
-			{
-				global $quickinstall_path;
-
-				$dbname = $quickinstall_path . 'cache/sqlite_db';
-			}
-
+			return(false);
 			// if file doesn't exist, attempt to create it.
 			if (!is_writable(dirname($dbname)))
 			{
@@ -89,6 +83,37 @@ class dbal_sqlite_qi extends dbal_sqlite
 		}
 
 		return $this->db_connect_id;
+	}
+
+	/**
+	 * Select a database
+	 *
+	 * @param string $dbname
+	 */
+	function sql_create_db($dbname)
+	{
+		if (!file_exists($dbname))
+		{
+			// if file doesn't exist, attempt to create it.
+			if (!is_writable(dirname($dbname)))
+			{
+				trigger_error('SQLite: unable to write to dir ' . dirname($dbname), E_USER_ERROR);
+			}
+
+			$fp = @fopen($dbname, 'a');
+			@fclose($fp);
+			@chmod($dbname, 0777);
+		}
+
+		return $this->db_connect_id;
+	}
+
+	/**
+	 * Updates value of a sequence.
+	 * Does nothing in this dbal.
+	 */
+	public function update_sequence($sequence_name, $value)
+	{
 	}
 }
 

@@ -24,8 +24,10 @@ class qi_manage
 {
 	public function __construct()
 	{
-		global $db, $template, $user;
+		global $db, $template, $user, $settings;
 		global $quickinstall_path, $phpbb_root_path, $phpEx, $config, $qi_config, $msg_title;
+
+		db_connect();
 
 		$action = request_var('action', '');
 		$delete = request_var('delete', false);
@@ -42,14 +44,27 @@ class qi_manage
 
 				foreach ($select as $item)
 				{
+					$current_item = $settings->get_boards_dir() . $item;
 
-					$current_item = $quickinstall_path . 'boards/' . $item;
+					// Need to get the dbname from the board.
+					@include($current_item . '/config.php');
 
-					// Make sure we have a valid db-name and prefix
-					$qi_config['db_prefix'] = validate_dbname($qi_config['db_prefix'], true);
-					$item = validate_dbname($item);
+					if (!empty($dbname))
+					{
+						if ($qi_config['dbms'] == 'sqlite')
+						{
+							$db_file = $qi_config['dbhost'] . $dbname;
 
-					$db->sql_query('DROP DATABASE IF EXISTS ' . $qi_config['db_prefix'] . $item);
+							if (file_exists($db_file))
+							{
+								unlink($db_file);
+							}
+						}
+						else
+						{
+							$db->sql_query('DROP DATABASE IF EXISTS ' . $dbname);
+						}
+					}
 
 					if (!file_exists($current_item) || !is_dir($current_item))
 					{
@@ -66,17 +81,17 @@ class qi_manage
 			default:
 
 				// list of boards
-				$boards_arr = scandir($quickinstall_path . $qi_config['boards_dir']);
+				$boards_arr = scandir($settings->get_boards_dir());
 				foreach ($boards_arr as $board)
 				{
-					if (in_array($board, array('.', '..', '.svn', '.htaccess', '.git'), true) || is_file($quickinstall_path . 'boards/' . $board))
+					if (in_array($board, array('.', '..', '.svn', '.htaccess', '.git'), true) || is_file($settings->get_boards_dir() . $board))
 					{
 						continue;
 					}
 
 					$template->assign_block_vars('row', array(
 						'BOARD_NAME'	=> htmlspecialchars($board),
-						'BOARD_URL'		=> $quickinstall_path . $qi_config['boards_dir'] . urlencode($board),
+						'BOARD_URL'		=> $settings->get_boards_url() . urlencode($board),
 					));
 				}
 

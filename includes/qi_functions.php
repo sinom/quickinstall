@@ -49,45 +49,263 @@ function validate_dbname($dbname, $first_char = false)
 }
 
 /**
- * validate_settings()
- * Some nubs might edit the settings manually.
- * We need to make sure they are ok.
- *
- * @param array settings
- * @return string $error
+ * Encapsulates quickinstall settings.
+ * Provides settings validation and updating.
  */
-function validate_settings(&$config)
+class settings
 {
-	global $user;
+	/**
+	 * Array with configuration settings.
+	 * @private
+	 */
+	var $config;
 
-	$config['no_dbpasswd'] = (empty($config['no_dbpasswd']) || $config['no_dbpasswd'] != 1) ? 0 : 1;
-	// Lets check the required settings...
-	$error = '';
-	$error .= ($config['dbms'] == '') ? $user->lang['DBMS'] . ' ' . $user->lang['REQUIRED'] . '<br />' : '';
-	$error .= ($config['dbhost'] == '') ? $user->lang['DBHOST'] . ' ' . $user->lang['REQUIRED'] . '<br />' : '';
-	$error .= ($config['dbuser'] == '') ? $user->lang['DBUSER'] . ' ' . $user->lang['REQUIRED'] . '<br />' : '';
-	$error .= ($config['dbpasswd'] == '' && !$config['no_dbpasswd']) ? $user->lang['DBPASSWD'] . ' ' . $user->lang['REQUIRED'] . '<br />' : '';
-	$error .= ($config['dbpasswd'] != '' && $config['no_dbpasswd']) ? $user->lang['NO_DBPASSWD_ERR'] . '<br />' : '';
-	$error .= ($config['table_prefix'] == '') ? $user->lang['TABLE_PREFIX'] . ' ' . $user->lang['REQUIRED'] . '<br />' : '';
-	$error .= ($config['boards_dir'] == '') ? $user->lang['BOARDS_DIR'] . ' ' . $user->lang['REQUIRED'] . '<br />' : '';
-	$error .= ($config['qi_lang'] == '') ? $user->lang['QI_LANG'] . ' ' . $user->lang['REQUIRED'] . '<br />' : '';
-	$error .= ($config['qi_tz'] == '') ? $user->lang['QI_TZ'] . ' ' . $user->lang['REQUIRED'] . '<br />' : '';
-	$error .= ($config['db_prefix'] == '') ? $user->lang['DB_PREFIX'] . ' ' . $user->lang['REQUIRED'] . '<br />' : '';
-	$error .= ($config['admin_name'] == '') ? $user->lang['ADMIN_NAME'] . ' ' . $user->lang['REQUIRED'] . '<br />' : '';
-	$error .= ($config['admin_pass'] == '') ? $user->lang['ADMIN_PASS'] . ' ' . $user->lang['REQUIRED'] . '<br />' : '';
-	$error .= ($config['admin_email'] == '') ? $user->lang['ADMIN_EMAIL'] . ' ' . $user->lang['REQUIRED'] . '<br />' : '';
-	$error .= ($config['site_name'] == '') ? $user->lang['SITE_NAME'] . ' ' . $user->lang['REQUIRED'] . '<br />' : '';
-	$error .= ($config['server_name'] == '') ? $user->lang['SERVER_NAME'] . ' ' . $user->lang['REQUIRED'] . '<br />' : '';
-	$error .= ($config['server_port'] == '') ? $user->lang['SERVER_PORT'] . ' ' . $user->lang['REQUIRED'] . '<br />' : '';
-	$error .= ($config['cookie_domain'] == '') ? $user->lang['COOKIE_DOMAIN'] . ' ' . $user->lang['REQUIRED'] . '<br />' : '';
-	$error .= ($config['board_email'] == '') ? $user->lang['BOARD_EMAIL'] . ' ' . $user->lang['REQUIRED'] . '<br />' : '';
-	$error .= ($config['default_lang'] == '') ? $user->lang['DEFAULT_LANG'] . ' ' . $user->lang['REQUIRED'] . '<br />' : '';
+	/**
+	 * Holds errors resulting from validation.
+	 */
+	var $error;
 
-	$error .= ($config['db_prefix'] != validate_dbname($config['db_prefix'], true)) ? $user->lang['DB_PREFIX'] . ' ' . $user->lang['IS_NOT_VALID'] . '<br />' : '';
+	/**
+	 * Constructor.
+	 *
+	 * Initializes settings instance given configuration settings array.
+	 */
+	function settings($config)
+	{
+		$this->set_config($config);
+	}
 
-	return($error);
+	/**
+	 * Updates configuration settings.
+	 */
+	function set_config($config)
+	{
+		$this->config = $config;
+	}
+
+	function get_config()
+	{
+		return $this->config;
+	}
+
+	function get_cache_dir()
+	{
+		global $quickinstall_path;
+		if (empty($this->config['cache_dir']))
+		{
+			$cache_dir = $quickinstall_path . 'cache/';
+		}
+		else
+		{
+			$cache_dir = $this->config['cache_dir'];
+		}
+		return $cache_dir;
+	}
+
+	function get_boards_dir()
+	{
+		global $quickinstall_path;
+		if (empty($this->config['boards_dir']))
+		{
+			$boards_dir = $quickinstall_path . 'boards/';
+		}
+		else
+		{
+			$boards_dir = $this->config['boards_dir'];
+		}
+		return $boards_dir;
+	}
+
+	function get_boards_url()
+	{
+		global $quickinstall_path;
+		if (empty($this->config['boards_url']))
+		{
+			$boards_url = $quickinstall_path . 'boards/';
+		}
+		else
+		{
+			$boards_url = $this->config['boards_url'];
+			/*
+			if (!preg_match('|^\w+://|', $boards_url))
+			{
+				$boards_url = $quickinstall_path . $boards_url;
+			}
+			*/
+		}
+		return $boards_url;
+	}
+
+	/**
+	 * Validates settings.
+	 *
+	 * If validation fails, the errors are available in $error property.
+	 *
+	 * Some nubs might edit the settings manually.
+	 * We need to make sure they are ok.
+	 *
+	 * @return boolean
+	 */
+	function validate()
+	{
+		global $user, $quickinstall_path;
+
+		// The config cannot be empty
+		if (empty($this->config))
+		{
+			$this->error = $user->lang['CONFIG_EMPTY'];
+			return false;
+		}
+
+		foreach ($this->config as &$value)
+		{
+			$value = htmlspecialchars_decode($value);
+		}
+
+		$this->config['no_dbpasswd'] = (empty($this->config['no_dbpasswd'])) ? 0 : 1;
+		// Lets check the required settings...
+		$error = '';
+		$error .= ($this->config['dbms'] == '') ? $user->lang['DBMS'] . ' ' . $user->lang['REQUIRED'] . '<br />' : '';
+		$error .= ($this->config['dbhost'] == '') ? $user->lang['DBHOST'] . ' ' . $user->lang['REQUIRED'] . '<br />' : '';
+		$error .= ($this->config['dbuser'] == '') ? $user->lang['DBUSER'] . ' ' . $user->lang['REQUIRED'] . '<br />' : '';
+		$error .= ($this->config['dbpasswd'] == '' && !$this->config['no_dbpasswd']) ? $user->lang['DBPASSWD'] . ' ' . $user->lang['REQUIRED'] . '<br />' : '';
+		$error .= ($this->config['dbpasswd'] != '' && $this->config['no_dbpasswd']) ? $user->lang['NO_DBPASSWD_ERR'] . '<br />' : '';
+		$error .= ($this->config['table_prefix'] == '') ? $user->lang['TABLE_PREFIX'] . ' ' . $user->lang['REQUIRED'] . '<br />' : '';
+		$error .= ($this->config['qi_lang'] == '') ? $user->lang['QI_LANG'] . ' ' . $user->lang['REQUIRED'] . '<br />' : '';
+		$error .= ($this->config['qi_tz'] == '') ? $user->lang['QI_TZ'] . ' ' . $user->lang['REQUIRED'] . '<br />' : '';
+		$error .= ($this->config['db_prefix'] == '') ? $user->lang['DB_PREFIX'] . ' ' . $user->lang['REQUIRED'] . '<br />' : '';
+		$error .= ($this->config['admin_name'] == '') ? $user->lang['ADMIN_NAME'] . ' ' . $user->lang['REQUIRED'] . '<br />' : '';
+		$error .= ($this->config['admin_pass'] == '') ? $user->lang['ADMIN_PASS'] . ' ' . $user->lang['REQUIRED'] . '<br />' : '';
+		$error .= ($this->config['admin_email'] == '') ? $user->lang['ADMIN_EMAIL'] . ' ' . $user->lang['REQUIRED'] . '<br />' : '';
+		$error .= ($this->config['site_name'] == '') ? $user->lang['SITE_NAME'] . ' ' . $user->lang['REQUIRED'] . '<br />' : '';
+		$error .= ($this->config['server_name'] == '') ? $user->lang['SERVER_NAME'] . ' ' . $user->lang['REQUIRED'] . '<br />' : '';
+		$error .= ($this->config['server_port'] == '') ? $user->lang['SERVER_PORT'] . ' ' . $user->lang['REQUIRED'] . '<br />' : '';
+		$error .= ($this->config['cookie_domain'] == '') ? $user->lang['COOKIE_DOMAIN'] . ' ' . $user->lang['REQUIRED'] . '<br />' : '';
+		$error .= ($this->config['board_email'] == '') ? $user->lang['BOARD_EMAIL'] . ' ' . $user->lang['REQUIRED'] . '<br />' : '';
+		$error .= ($this->config['default_lang'] == '') ? $user->lang['DEFAULT_LANG'] . ' ' . $user->lang['REQUIRED'] . '<br />' : '';
+
+		$error .= ($this->config['db_prefix'] != validate_dbname($this->config['db_prefix'], true)) ? $user->lang['DB_PREFIX'] . ' ' . $user->lang['IS_NOT_VALID'] . '<br />' : '';
+
+		if ($this->config['cache_dir'] == '')
+		{
+			$error .= $user->lang['CACHE_DIR'] . ' ' . $user->lang['REQUIRED'] . '<br />';
+		}
+		else if (!file_exists($this->get_cache_dir()) || !is_writable($this->get_cache_dir()))
+		{
+			// The cache dir needs to both exist and be writeable.
+			$cache_dir_error = sprintf($user->lang['CACHE_DIR_MISSING'], $this->get_cache_dir());
+			$error .= $cache_dir_error . '<br />';
+		}
+
+		if ($this->config['boards_dir'] == '')
+		{
+			$error .= $user->lang['BOARDS_DIR'] . ' ' . $user->lang['REQUIRED'] . '<br />';
+		}
+		else if (!file_exists($this->get_boards_dir()) || !is_writable($this->get_boards_dir()))
+		{
+			// The boards dir needs to both exist and be writeable.
+			$boards_dir_error = sprintf($user->lang['BOARDS_DIR_MISSING'], $this->get_boards_dir());
+			$error .= $boards_dir_error . '<br />';
+		}
+
+		// SQLite needs a writable and existing directory
+		if ($this->config['dbms'] == 'sqlite')
+		{
+			if (!file_exists($this->config['dbhost']) || !is_writable($this->config['dbhost']) || !is_dir($this->config['dbhost']))
+			{
+				$error .= $user->lang['SQLITE_PATH_MISSING'] . '<br />';
+			}
+			else
+			{
+				// Make sure the directory ends with a slash if we use SQLite
+				$this->config['dbhost'] = (substr($this->config['dbhost'], -1) == '/') ? $this->config['dbhost'] : $this->config['dbhost'] . '/';
+			}
+		}
+
+		if ($this->config['boards_url'] == '')
+		{
+			$error .= $user->lang['BOARDS_URL'] . ' ' . $user->lang['REQUIRED'] . '<br />';
+		}
+
+		$this->error = $error;
+		return empty($error);
+	}
+
+	/**
+	 * Adjusts configuration settings.
+	 *
+	 * Users can enter the same information in different ways.
+	 * This function transforms settings to the canonical representation
+	 * that the rest of the code expects.
+	 */
+	function adjust()
+	{
+		// Let's make sure our boards dir ends with a slash.
+		$this->config['boards_dir'] = (substr($this->config['boards_dir'], -1) == '/') ? $this->config['boards_dir'] : $this->config['boards_dir'] . '/';
+		$this->config['boards_url'] = (substr($this->config['boards_url'], -1) == '/') ? $this->config['boards_url'] : $this->config['boards_url'] . '/';
+	}
+
+	/**
+	 * Serializes configuration settings into a string suitable for
+	 * writing to the configuration file.
+	 */
+	function get_config_text()
+	{
+		$cfg_string = '';
+
+		foreach ($this->config as $key => $value)
+		{
+			$cfg_string .= $key . '=' . $value . "\n";
+		}
+
+		return $cfg_string;
+	}
+
+	/**
+	 * Writes configuration settings to the configuration file.
+	 */
+	function write($config_text)
+	{
+		global $quickinstall_path;
+
+		return file_put_contents($quickinstall_path . 'qi_config.cfg', $config_text) !== false;
+	}
+
+	/**
+	 * Updates settings.
+	 *
+	 * Adjusts settings to canonical representation and validates them.
+	 * If validation passes writes serialized settings to the
+	 * configuration file.
+	 *
+	 * @param array
+	 * @return string, error
+	 */
+	function update()
+	{
+		$this->adjust();
+		$this->config_text = $this->get_config_text();
+		$this->apply_language();
+		return $this->write($this->config_text);
+	}
+
+	/**
+	 * Applies language selected by user to quickinstall.
+	 */
+	function apply_language()
+	{
+		global $quickinstall_path, $user;
+
+		if (!empty($this->config['qi_lang']) && $this->config['qi_lang'] != $user->lang['USER_LANG'])
+		{
+			if (file_exists($quickinstall_path . 'language/' . $this->config['qi_lang']))
+			{
+				$user->lang = $this->config['qi_lang'];
+				qi::add_lang(array('qi', 'phpbb'), $quickinstall_path . 'language/' . $this->config['qi_lang'] . '/');
+			}
+		}
+	}
 }
-
 
 /**
  * get_settings()
@@ -159,52 +377,6 @@ function get_settings()
 }
 
 /**
- * update_settings
- * Saves config to file.
- *
- * @param array
- * @return string, error
- */
-function update_settings(&$config)
-{
-	global $quickinstall_path, $phpEx, $user;
-
-	// The config cant be empty
-	if (empty($config))
-	{
-		return($user->lang['CONFIG_EMPTY']);
-	}
-
-	$error = validate_settings($config);
-
-	if (!empty($error))
-	{
-		return($error);
-	}
-
-	// Let's make sure our boards dir ends with a slash.
-	$config['boards_dir'] = (substr($config['boards_dir'], -1) == '/') ? $config['boards_dir'] : $config['boards_dir'] . '/';
-
-	$cfg_string = '';
-
-	foreach ($config as $key => $value)
-	{
-		$cfg_string .= $key . '=' . $value . "\n";
-	}
-
-	if (!empty($config['qi_lang']) && $config['qi_lang'] != $user->lang['USER_LANG'])
-	{
-		if (file_exists($quickinstall_path . 'language/' . $config['qi_lang']))
-		{
-			$user->lang = $config['qi_lang'];
-			qi::add_lang(array('qi', 'phpbb'), $quickinstall_path . 'language/' . $config['qi_lang'] . '/');
-		}
-	}
-
-	file_put_contents($quickinstall_path . 'qi_config.cfg', $cfg_string);
-}
-
-/**
  * Generate a lang select for the settings page.
  */
 function gen_lang_select($language = '')
@@ -237,6 +409,36 @@ function gen_lang_select($language = '')
 			unset($lang);
 		}
 	}
+}
+
+function db_connect()
+{
+	global $qi_config, $phpbb_root_path, $phpEx, $sql_db, $db;
+
+	foreach (array('dbms', 'dbhost', 'dbuser', 'dbpasswd', 'dbport') as $var)
+	{
+		$$var = $qi_config[$var];
+	}
+
+	// If we get here and the extension isn't loaded it should be safe to just go ahead and load it
+	$available_dbms = get_available_dbms($dbms);
+
+	if (!isset($available_dbms[$dbms]['DRIVER']))
+	{
+		trigger_error("The $dbms dbms is either not supported, or the php extension for it could not be loaded.", E_USER_ERROR);
+	}
+
+	// Load the appropriate database class if not already loaded
+	include($phpbb_root_path . 'includes/db/' . $available_dbms[$dbms]['DRIVER'] . '.' . $phpEx);
+
+	// now the quickinstall dbal extension
+	include($quickinstall_path . 'includes/db/' . $available_dbms[$dbms]['DRIVER'] . '.' . $phpEx);
+
+	// Instantiate the database
+	$sql_db = 'dbal_' . $available_dbms[$dbms]['DRIVER'] . '_qi';
+	$db = new $sql_db();
+	$db->sql_connect($dbhost, $dbuser, $dbpasswd, false, $dbport, false, false);
+	$db->sql_return_on_error(true);
 }
 
 ?>

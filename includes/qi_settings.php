@@ -16,27 +16,58 @@ if (!defined('IN_QUICKINSTALL'))
 	exit;
 }
 
+$attempted = false;
+$config_text = '';
 if ($mode == 'update_settings')
 {
 	// Time to save some settings.
-	$qi_config = request_var('qi_config', array('' => ''));
+	$qi_config = utf8_normalize_nfc(request_var('qi_config', array('' => ''), true));
 
-	// make sure qi_config.php is writable
-	if (is_writable($quickinstall_path . 'qi_config.cfg'))
+	$settings = new settings($qi_config);
+	$attempted = true;
+	$valid = false;
+	$error = '';
+	$saved = false;
+	if ($settings->validate())
 	{
-		$error = update_settings($qi_config);
+		$valid = true;
+		if (is_writable($quickinstall_path . 'qi_config.cfg'))
+		{
+			if ($settings->update())
+			{
+				$saved = true;
+			}
+			else
+			{
+				$error .= $user->lang['CONFIG_NOT_WRITTEN'] . '<br />';
+				$error .= $user->lang['CONFIG_IS_DISPLAYED'] . '<br />';
+				$config_text = $settings->get_config_text();
+			}
+		}
+		else
+		{
+			$error .= $user->lang['CONFIG_NOT_WRITABLE'] . '<br />';
+			$error .= $user->lang['CONFIG_IS_DISPLAYED'] . '<br />';
+			$config_text = $settings->get_config_text();
+		}
 	}
+	else
+	{
+		$error = $settings->error;
+	}
+	// configuration may have been modified by settings.
+	$qi_config = $settings->get_config();
 
 	if (empty($error))
 	{
 		$s_settings_success = true;
-		$qi_install = false;
 		$language = $qi_config['qi_lang'];
 	}
 	else
 	{
 		$s_settings_failure = true;
 	}
+	$qi_install = false;
 }
 
 gen_lang_select($language);
@@ -47,15 +78,16 @@ if ($qi_install)
 }
 
 $template->assign_vars(array(
-	'S_BOARDS_WRITABLE' => is_writable($quickinstall_path . 'boards'),
-	'S_CACHE_WRITABLE' => is_writable($quickinstall_path . 'cache'),
+	'S_BOARDS_WRITABLE' => is_writable($settings->get_boards_dir()),
+	'S_CACHE_WRITABLE' => is_writable($settings->get_cache_dir()),
 	'S_CONFIG_WRITABLE' => is_writable($quickinstall_path . 'qi_config.cfg'),
 	'S_IN_INSTALL' => $qi_install,
 	'S_IN_SETTINGS' => true,
-	'S_SETTINGS_SUCCESS' => (!empty($s_settings_success)) ? true : false,
-	'S_SETTINGS_FAILURE' => (!empty($s_settings_failure)) ? true : false,
+	'S_SETTINGS_SUCCESS' => ($attempted && $saved) ? true : false,
+	'S_SETTINGS_FAILURE' => ($attempted && !$saved) ? true : false,
 
 	'ERROR' => (!empty($error)) ? ((!$qi_install) ? $error : '') : '',
+	'CONFIG_TEXT' => $config_text,
 
 	'U_UPDATE_SETTINGS'		=> qi::url('update_settings'),
 
@@ -65,6 +97,9 @@ $template->assign_vars(array(
 	'ALT_ENV'		=> (!empty($alt_env)) ? $alt_env : false,
 	'PAGE_MAIN'		=> false,
 
+	'CONFIG_SAVED'  => $saved,
+	'CONFIG_TEXT'   => htmlspecialchars($config_text),
+
 	// Config settings
 	'CONFIG_ADMIN_EMAIL' => (!empty($qi_config['admin_email'])) ? $qi_config['admin_email'] : '',
 	'CONFIG_ADMIN_NAME' => (!empty($qi_config['admin_name'])) ? $qi_config['admin_name'] : '',
@@ -72,6 +107,8 @@ $template->assign_vars(array(
 	'CONFIG_AUTOMOD' => (isset($qi_config['automod'])) ? $qi_config['automod'] : 1,
 	'CONFIG_BOARD_EMAIL' => (!empty($qi_config['board_email'])) ? $qi_config['board_email'] : '',
 	'CONFIG_BOARDS_DIR' => (!empty($qi_config['boards_dir'])) ? $qi_config['boards_dir'] : 'boards/',
+	'CONFIG_BOARDS_URL' => (!empty($qi_config['boards_url'])) ? $qi_config['boards_url'] : 'boards/',
+	'CONFIG_CACHE_DIR' => (!empty($qi_config['cache_dir'])) ? $qi_config['cache_dir'] : 'cache/',
 	'CONFIG_COOKIE_DOMAIN' => (!empty($qi_config['cookie_domain'])) ? $qi_config['cookie_domain'] : 'localhost',
 	'CONFIG_COOKIE_SECURE' => (!empty($qi_config['cookie_secure'])) ? $qi_config['cookie_secure'] : 0,
 	'CONFIG_DB_PREFIX' => (!empty($qi_config['db_prefix'])) ? $qi_config['db_prefix'] : 'qi_',
@@ -82,6 +119,7 @@ $template->assign_vars(array(
 	'CONFIG_DBUSER' => (!empty($qi_config['dbuser'])) ? $qi_config['dbuser'] : '',
 	'CONFIG_DEFAULT_LANG' => (!empty($qi_config['default_lang'])) ? $qi_config['default_lang'] : 'en',
 	'CONFIG_EMAIL_ENABLE' => (!empty($qi_config['email_enable'])) ? $qi_config['email_enable'] : 0,
+	'CONFIG_GRANT_PERMISSIONS' => (!empty($qi_config['grant_permissions'])) ? $qi_config['grant_permissions'] : '',
 	'CONFIG_MAKE_WRITABLE' => (!empty($qi_config['make_writable'])) ? $qi_config['make_writable'] : 0,
 	'CONFIG_NO_PASSWORD' => (isset($qi_config['no_dbpasswd'])) ? $qi_config['no_dbpasswd'] : 0,
 	'CONFIG_POPULATE' => (isset($qi_config['populate'])) ? $qi_config['populate'] : 0,
@@ -111,6 +149,7 @@ $template->assign_vars(array(
 	'CONFIG_NUM_REPLIES_MIN' => (isset($qi_config['num_replies_min'])) ? $qi_config['num_replies_min'] : 1,
 	'CONFIG_NUM_REPLIES_MAX' => (isset($qi_config['num_replies_max'])) ? $qi_config['num_replies_max'] : 15,
 	'CONFIG_EMAIL_DOMAIN' => (isset($qi_config['email_domain'])) ? $qi_config['email_domain'] : '',
+	'SEL_LANG' => (!empty($language)) ? $language : '',
 ));
 
 // Output page
